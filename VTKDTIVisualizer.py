@@ -335,18 +335,18 @@ class VTKDTIVectorVisualizer:
     def SetDTIPolydatas(self, dti_volume_v1, dti_volume_v2, dti_volume_v3, mask, spacing = [1,1,1]):
         
         points = vtk.vtkPoints()
-        vertices = vtk.vtkCellArray()
+        #vertices = vtk.vtkCellArray()
         
         normals_v1 = vtk.vtkFloatArray()
-        normals_v1.Allocate(1,1)
+        normals_v1.SetName('eigenvectors')
         normals_v1.SetNumberOfComponents(3)
         
         normals_v2 = vtk.vtkFloatArray()
-        normals_v2.Allocate(1,1)
+        normals_v2.SetName('eigenvectors')
         normals_v2.SetNumberOfComponents(3)
         
         normals_v3 = vtk.vtkFloatArray()
-        normals_v3.Allocate(1,1)
+        normals_v3.SetName('eigenvectors')
         normals_v3.SetNumberOfComponents(3)
         
         colors_v1 = vtk.vtkUnsignedCharArray();
@@ -361,60 +361,94 @@ class VTKDTIVectorVisualizer:
         colors_v3.SetName('colors')
         colors_v3.SetNumberOfComponents(3)
         
-        
+        point_id = -1
         print('Copying data')
         for i in range(mask.shape[0]):
-        	for j in range(mask.shape[1]):
-        		for k in range(mask.shape[2]):
-        			if(mask[i,j,k]):
-        				#normal = [0.0,0.0,0.0]
-        				
-        				# Insert point
-        				id = points.InsertNextPoint(i*spacing[0],j*spacing[1],k*spacing[2])
+            for j in range(mask.shape[1]):
+                for k in range(mask.shape[2]):
+                    if(mask[i,j,k]):
+                        # Insert point
+                        point_id = points.InsertNextPoint(i*spacing[0],j*spacing[1],k*spacing[2])
+
+                        # Insert vertex cell to represent the point
+                        #vertices.InsertNextCell(point_id)
         
-        				# Insert point cell to represent it
-        				vertices.InsertNextCell(id)
-        
-            			# Radial local frame vectors
-        				#normals_v1.InsertNextTuple(numpy.flipud(dti_volume_v1[k,j,i,:]))
-        				normals_v1.InsertNextTuple(dti_volume_v1[i,j,k,:])
+                        # First vector
+                        normals_v1.InsertNextTuple(dti_volume_v1[i,j,k,:])
             
-        				# Radial component color
-        				colors_v1.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v1[i,j,k,:])))
+                        # First vector's color
+                        colors_v1.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v1[i,j,k,:])))
         
-        				# Circular component normal
-        				normals_v2.InsertNextTuple(dti_volume_v2[i,j,k,:])
+                        # Second vector
+                        normals_v2.InsertNextTuple(dti_volume_v2[i,j,k,:])
         
-        				# circular component color
-        				colors_v2.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v2[i,j,k,:])))
-        				
-        				# longitudinal component normal
-        				normals_v3.InsertNextTuple(dti_volume_v3[i,j,k,:])
+                        # Second vector's color
+                        colors_v2.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v2[i,j,k,:])))
+                        
+                        # Third vector
+                        normals_v3.InsertNextTuple(dti_volume_v3[i,j,k,:])
         
-        				# longitudinal component color
-        				colors_v3.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v3[i,j,k,:])))
+                        # Third vector's color
+                        colors_v3.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v3[i,j,k,:])))
         
         print('Done')
 
-        # Fill radial component polydata
+        # Fill first vector's polydata
+        self.polydata_v1.DebugOn()
         self.polydata_v1.SetPoints(points);
-        self.polydata_v1.SetVerts(vertices);
-        self.polydata_v1.GetPointData().SetNormals(normals_v1);
+        self.polydata_v1.GetPointData().SetVectors(normals_v1);
         self.polydata_v1.GetPointData().SetScalars(colors_v1);
-        
+        self.polydata_v1.GetPointData().SetActiveVectors('eigenvectors')
+        self.polydata_v1.BuildLinks()
+        self.polydata_v1.BuildCells()
+
         # Fill circular component polydata
         self.polydata_v2.SetPoints(points);
-        self.polydata_v2.SetVerts(vertices);
-        self.polydata_v2.GetPointData().SetNormals(normals_v2);
+        self.polydata_v2.GetPointData().SetVectors(normals_v2);
         self.polydata_v2.GetPointData().SetScalars(colors_v2);
-        
+        self.polydata_v2.GetPointData().SetActiveVectors('eigenvectors')
+        self.polydata_v2.BuildLinks()
+        self.polydata_v2.BuildCells()
+
         # Fill longitudinal component polydata
         self.polydata_v3.SetPoints(points);
-        self.polydata_v3.SetVerts(vertices);
-        self.polydata_v3.GetPointData().SetNormals(normals_v3);
+        self.polydata_v3.GetPointData().SetVectors(normals_v3);
         self.polydata_v3.GetPointData().SetScalars(colors_v3);
-        
+        self.polydata_v3.GetPointData().SetActiveVectors('eigenvectors')
+        self.polydata_v3.BuildLinks()
+        self.polydata_v3.BuildCells()
+
+
         self.CreateVisualization()
+
+    def SetEigValues(self, e1Image, e2Image, e3Image):
+        e1Scalars = vtk.vtkFloatArray()
+        e2Scalars = vtk.vtkFloatArray()
+        e3Scalars = vtk.vtkFloatArray()
+
+        e1Scalars.SetName('eigenvalues')
+        e1Scalars.SetNumberOfComponents(1)
+
+        e2Scalars.SetName('eigenvalues')
+        e2Scalars.SetNumberOfComponents(1)
+
+        e3Scalars.SetNumberOfComponents(1)
+        e3Scalars.SetName('eigenvalues')
+
+        for i in range(e1Image.shape[0]):
+            for j in range(e1Image.shape[1]):
+                for k in range(e1Image.shape[2]):
+                    if e1Image[i,j,k]>0:
+                        e1Scalars.InsertNextTuple([float(e1Image[i,j,k])])
+                        e2Scalars.InsertNextTuple([float(e2Image[i,j,k])])
+                        e3Scalars.InsertNextTuple([float(e3Image[i,j,k])])
+
+        self.polydata_v1.GetPointData().AddArray(e1Scalars)
+        self.polydata_v2.GetPointData().AddArray(e2Scalars)
+        self.polydata_v3.GetPointData().AddArray(e3Scalars)
+
+        print(e1Scalars)
+        print(self.polydata_v1)
 
     def SetMRIImage(self, matImage, spacing=[1,1,1]):
         ###################################################
@@ -423,7 +457,7 @@ class VTKDTIVectorVisualizer:
     
         VTK_DATA = numpy_support.numpy_to_vtk(num_array=matImage.ravel(), deep=True, array_type=vtk.VTK_FLOAT)
         image_volume = vtk.vtkImageData()
-        image_volume.SetDimensions(matImage.shape[0], matImage.shape[1], matImage.shape[2]) #set dimensions as necessary
+        image_volume.SetDimensions(matImage.shape[2], matImage.shape[1], matImage.shape[0]) #set dimensions as necessary
         image_volume.SetOrigin(0,0,0) #set origin as necessary
         image_volume.SetSpacing(spacing) #set spacing as necessary  
         image_volume.GetPointData().SetScalars(VTK_DATA)
@@ -434,18 +468,18 @@ class VTKDTIVectorVisualizer:
         
         # Look-up table to color
         lut3D = vtk.vtkLookupTable()
-        lut3D.SetTableRange(-6.283,6.283)	# image intensity range
+        lut3D.SetTableRange(-6.283,6.283)    # image intensity range
         lut3D.SetAlphaRange(1.0,1.0)
-        lut3D.SetValueRange(0,1)	# from black to white
+        lut3D.SetValueRange(0,1)    # from black to white
         lut3D.SetSaturationRange(0,0)
         lut3D.SetRange(0,1)
         lut3D.Build()
         
         # Look-up table to color
         lut = vtk.vtkLookupTable()
-        lut.SetTableRange(0,255)	# image intensity range
+        lut.SetTableRange(0,255)    # image intensity range
         lut.SetAlphaRange(1.0,1.0)
-        lut.SetValueRange(0,1)	# from black to white
+        lut.SetValueRange(0,1)    # from black to white
         lut.SetSaturationRange(0,0)
         lut.SetRange(0,1)
         lut.Build()
@@ -490,16 +524,15 @@ class VTKDTIVectorVisualizer:
         # We will represent vectors in 3D using arrows
         arrowSource = vtk.vtkArrowSource()
         
-        
         glyph = vtk.vtkGlyph3D();
         glyph.SetInputConnection(self.ptMask.GetOutputPort())
         glyph.SetSourceConnection(arrowSource.GetOutputPort())
         glyph.ScalingOn()
-        glyph.SetScaleFactor(3.0)	# Scale respect color value
+        glyph.SetScaleFactor(3.0)    # Scale respect color value
         glyph.OrientOn()
-        glyph.SetVectorModeToUseNormal()		# Orient the arrow using 'normals' 
-        glyph.SetScaleModeToDataScalingOff()	# Normals (and colors) might not be normalized. Don't use them to scale.
-        glyph.SetColorModeToColorByScalar()		# Color using the values in 'color'
+        glyph.SetVectorModeToUseVector()        # Orient the arrow using 'normals' 
+        glyph.SetScaleModeToDataScalingOff()    # Normals (and colors) might not be normalized. Don't use them to scale.
+        glyph.SetColorModeToColorByScalar()     # Color using the values in 'color'
         glyph.Update();
 
         # Mapper for glyphs
@@ -511,14 +544,14 @@ class VTKDTIVectorVisualizer:
         actorVolume.SetMapper(self.mapper)
         
         # Add actor to renderer        
-        #self.renderer.AddActor(actorVolume)
+        self.renderer.AddActor(actorVolume)
 
         # Box widget
         self.boxWidget = vtk.vtkBoxWidget()
         self.boxWidget.SetInteractor(self.iren)
         self.boxWidget.SetPlaceFactor(1.0)
         self.boxWidget.RotationEnabledOff()
-        #self.boxWidget.ScalingEnabledOff()
+
         # Place the interactor initially. The output of the reader is used to
         # place the box widget.
         self.boxWidget.SetInputData(self.polydata_v1)
@@ -554,19 +587,22 @@ class VTKDTIVectorVisualizer:
         self.orientWidget.InteractiveOff();
 
     def CreateIntegrationVisualization(self, initialStep, maxStep, minStep, maxError, propagationSteps):
-        rk = vtk.vtkRungeKutta45()
+        # Runge-Kutta integrator
+        rk = vtk.vtkRungeKutta2()
+        
         # Create source for streamtubes
         streamer = vtk.vtkStreamTracer()
         streamer.SetInputData(self.polydata_v1)
-        streamer.SetSourceConnection(self.ptMask.GetOutputPort())
+        streamer.SetSourceData(self.ptMask.GetOutput())
         streamer.SetInitialIntegrationStep(initialStep);
-        streamer.SetMaximumIntegrationStep(maxStep);
-        streamer.SetMinimumIntegrationStep(minStep);
-        streamer.SetMaximumError(maxError);
-        streamer.SetMaximumPropagation(propagationSteps);
+        #streamer.SetMaximumIntegrationStep(maxStep);
+        #streamer.SetMinimumIntegrationStep(minStep);
+        #streamer.SetMaximumError(maxError);
+        #streamer.SetMaximumPropagation(propagationSteps);
         streamer.SetIntegrationDirectionToForward();
         streamer.SetInterpolatorTypeToDataSetPointLocator()   
         streamer.SetIntegrator(rk);
+        #streamer.SurfaceStreamlinesOff()
         streamer.Update()
         ReasonForTermination = streamer.GetOutput().GetCellData().GetArray("ReasonForTermination") 
         print(streamer)
@@ -575,13 +611,13 @@ class VTKDTIVectorVisualizer:
         aa.SetInputConnection(streamer.GetOutputPort())
         aa.Assign("Normals","NORMALS","POINT_DATA")
 
-        rf1 = vtk.vtkTubeFilter()
-        rf1.SetInputConnection(aa.GetOutputPort())
-        rf1.SetRadius(.2);
-        rf1.SetNumberOfSides(12);
+        tubes = vtk.vtkTubeFilter()
+        tubes.SetInputConnection(aa.GetOutputPort())
+        tubes.SetRadius(.2);
+        tubes.SetNumberOfSides(12);
 
         streamMapper = vtk.vtkPolyDataMapper()
-        streamMapper.SetInputConnection(rf1.GetOutputPort())
+        streamMapper.SetInputConnection(tubes.GetOutputPort())
         streamMapper.SetScalarRange(-1,1)
 
         streamActor = vtk.vtkActor()
