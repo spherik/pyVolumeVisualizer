@@ -74,7 +74,7 @@ class VTKVolumeVisualizer:
     def SetMask(self, matImage, spacing = [1,1,1]):
         VTK_DATA = numpy_support.numpy_to_vtk(num_array=matImage.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
         self.mask_volume = vtk.vtkImageData()
-        self.mask_volume.SetDimensions(matImage.shape[0], matImage.shape[1], matImage.shape[2]) #set dimensions as necessary
+        self.mask_volume.SetDimensions(matImage.shape[2], matImage.shape[1], matImage.shape[0]) #set dimensions as necessary
         self.mask_volume.SetOrigin(0,0,0) #set origin as necessary
         self.mask_volume.SetSpacing(spacing) #set spacing as necessary  
         self.mask_volume.GetPointData().SetScalars(VTK_DATA)
@@ -93,7 +93,7 @@ class VTKVolumeVisualizer:
     
         VTK_DATA = numpy_support.numpy_to_vtk(num_array=matImage.ravel(), deep=True, array_type=vtk.VTK_FLOAT)
         self.image_volume = vtk.vtkImageData()
-        self.image_volume.SetDimensions(matImage.shape[0], matImage.shape[1], matImage.shape[2]) #set dimensions as necessary
+        self.image_volume.SetDimensions(matImage.shape[2], matImage.shape[1], matImage.shape[0]) #set dimensions as necessary
         self.image_volume.SetOrigin(0,0,0) #set origin as necessary
         self.image_volume.SetSpacing(spacing) #set spacing as necessary  
         self.image_volume.GetPointData().SetScalars(VTK_DATA)
@@ -146,8 +146,8 @@ class VTKVolumeVisualizer:
         self.longAxis.SetLookupTable(self.lut)
         
         # Add planes to the scene (no visible by default)
-        self.shortAxis.SetInteractor(self.iren);
-        self.longAxis.SetInteractor(self.iren);
+        self.shortAxis.SetInteractor(self.iren)
+        self.longAxis.SetInteractor(self.iren)
 
 
         # Alpha channel function
@@ -164,11 +164,11 @@ class VTKVolumeVisualizer:
         # Color transfer functions
         color1 = vtk.vtkColorTransferFunction()
         color1.SetColorSpaceToRGB()
-        # color1.AddRGBPoint(-255.0, 0.0, 0.0, 0.0);
+        # color1.AddRGBPoint(-255.0, 0.0, 0.0, 0.0)
         # color1.AddRGBPoint(-90.0, 1.0,0.0,0.0)
         # color1.AddRGBPoint(0.0, 0.0,1.0,0.0)
         # color1.AddRGBPoint(90.0, 0.0,0.0,1.0)
-        # color1.AddRGBPoint(255.0, 0.0, 0.0, 0.0);
+        # color1.AddRGBPoint(255.0, 0.0, 0.0, 0.0)
 
         funcOpacityGradient = vtk.vtkPiecewiseFunction()
         funcOpacityGradient.AddPoint(values[0], 0.0)
@@ -188,20 +188,20 @@ class VTKVolumeVisualizer:
         propVolume.SetGradientOpacity(funcOpacityGradient)
         propVolume.SetColor(color1)
 
-        # lookupTable = vtk.vtkLookupTable();
-        # lookupTable.SetNumberOfTableValues(256);
-        # lookupTable.SetRange(-90.0, 90.0);
+        # lookupTable = vtk.vtkLookupTable()
+        # lookupTable.SetNumberOfTableValues(256)
+        # lookupTable.SetRange(-90.0, 90.0)
         # lookupTable.SetRampToLinear()
         # lookupTable.SetValueRange(0, 1)
         # lookupTable.SetAlphaRange(1.0, 1.0)
         # lookupTable.SetHueRange(0, 1)
         # lookupTable.SetSaturationRange(0, 0)
-        # lookupTable.Build();
+        # lookupTable.Build()
 
-        # scalarValuesToColors = vtk.vtkImageMapToColors();
-        # scalarValuesToColors.SetLookupTable(lookupTable);
-        # scalarValuesToColors.PassAlphaToOutputOn();
-        # scalarValuesToColors.SetInputData(self.image_volume);
+        # scalarValuesToColors = vtk.vtkImageMapToColors()
+        # scalarValuesToColors.SetLookupTable(lookupTable)
+        # scalarValuesToColors.PassAlphaToOutputOn()
+        # scalarValuesToColors.SetInputData(self.image_volume)
 
         self.mapper = vtk.vtkOpenGLGPUVolumeRayCastMapper()
         if self.has_mask:
@@ -217,12 +217,12 @@ class VTKVolumeVisualizer:
         # Add actor to renderer        
         self.renderer.AddActor(newvol)
         
-        # Box widget
+        # # Box widget
         self.boxWidget = vtk.vtkBoxWidget()
         self.boxWidget.SetInteractor(self.iren)
         self.boxWidget.SetPlaceFactor(1.0)
         self.boxWidget.RotationEnabledOff()
-        # Place the interactor initially. The output of the reader is used to
+        # Place the interactor initially. The volume is used to
         # place the box widget.
         self.boxWidget.SetInputData(self.image_volume)
         self.boxWidget.PlaceWidget()
@@ -246,8 +246,14 @@ class VTKVolumeVisualizer:
         
         # Add axes to the scene
         self.axes = vtk.vtkAxesActor()
-        self.axes.SetTotalLength(100,100,100)
-        self.renderer.AddActor(self.axes)
+        self.axes.SetShaftTypeToCylinder()
+        
+        self.orientWidget = vtk.vtkOrientationMarkerWidget()
+        self.orientWidget.SetOrientationMarker(self.axes)
+        self.orientWidget.SetViewport(0.0,0.0,.2,.2)
+        self.orientWidget.SetInteractor(self.iren)
+        self.orientWidget.SetEnabled(1)
+        self.orientWidget.InteractiveOff()
 
     def Start(self):
         self.renderer.SetBackground(0.0,0.0,0.0)
@@ -287,6 +293,13 @@ class VTKDTIVectorVisualizer:
         self.polydata_v2 = vtk.vtkPolyData()
         self.polydata_v3 = vtk.vtkPolyData()    
         
+        # Create images to hold dti info for streaming
+        self.image_v1 = vtk.vtkImageData()
+        self.image_v2 = vtk.vtkImageData()
+        self.image_v3 = vtk.vtkImageData() 
+        
+        
+
         self.planes = vtk.vtkPlanes()
     def Keypress(self, obj, event):
         key = obj.GetKeySym()
@@ -314,7 +327,12 @@ class VTKDTIVectorVisualizer:
             self.shortAxis.SetEnabled(not(self.shortAxis.GetEnabled()))
         elif key == "i":
             self.boxWidget.SetEnabled(not(self.boxWidget.GetEnabled()))
+        elif key == "v":
+            self.actorVolume.SetVisibility(not(self.actorVolume.GetVisibility()))
+        elif key == "t":
+            self.streamActor.SetVisibility(not(self.streamActor.GetVisibility()))
         self.iren.Render()
+        
     # When interaction starts, the requested frame rate is increased.
     def StartInteraction(self,obj, event):
         self.renderWindow.SetDesiredUpdateRate(10)
@@ -333,10 +351,45 @@ class VTKDTIVectorVisualizer:
         self.mapper.SetClippingPlanes(self.planes)
 
     def SetDTIPolydatas(self, dti_volume_v1, dti_volume_v2, dti_volume_v3, mask, spacing = [1,1,1]):
-        
-        points = vtk.vtkPoints()
-        #vertices = vtk.vtkCellArray()
-        
+        # This function creates 4 vtk volumes from numpy arrays. 3 volumes correspond to 3 the vectors
+        # of the DTI. These volumes will be used to build stream lines. The fourth volume is the mask. It is
+        # used to generate seeds
+        #
+        # The values expected in dti_volume_v1, dti_volume_v2 and dti_volume_v3 are:
+        #   DTI vector components if the voxel is valid (mask==1)
+        #   All 0's if the voxel is not valid (mask==0)
+        #
+        # We will create 2 possible visualizations of the DTI vectors: vector visualization (3D arrows) and
+        # tractography view (3D stream lines). 
+        #
+        # To generate vector visualization, we will build a polydata for each one of the 3 vectors (self.polydata_vN). 
+        # These polydatas will have one point (not vertex) and one vector(with three components, 3D) for each voxel.
+        #
+        # To generate tractography visualization, we will build a volume image for each one of the 3 vectors (self.image_vN).
+
+        self.image_mask = vtk.vtkImageData()
+        self.image_mask.SetDimensions(mask.shape[0], mask.shape[1], mask.shape[2]) #set dimensions as necessary
+        self.image_mask.SetOrigin(0,0,0) #set origin as necessary
+        self.image_mask.SetSpacing(spacing[0], spacing[1], spacing[1]) #set spacing as necessary  
+        self.image_mask.AllocateScalars(vtk.VTK_FLOAT, 1)
+
+        self.image_v1.SetDimensions(dti_volume_v1.shape[0], dti_volume_v1.shape[1], dti_volume_v1.shape[2]) #set dimensions as necessary
+        self.image_v1.SetOrigin(0,0,0) #set origin as necessary
+        self.image_v1.SetSpacing(spacing[0], spacing[1], spacing[2]) #set spacing as necessary
+        self.image_v1.AllocateScalars(vtk.VTK_FLOAT, 3)
+
+        self.image_v2 = vtk.vtkImageData()
+        self.image_v2.SetDimensions(dti_volume_v2.shape[0], dti_volume_v2.shape[1], dti_volume_v2.shape[2]) #set dimensions as necessary
+        self.image_v2.SetOrigin(0,0,0) #set origin as necessary
+        self.image_v2.SetSpacing(spacing[0], spacing[1], spacing[2]) #set spacing as necessary
+        self.image_v2.AllocateScalars(vtk.VTK_FLOAT, 3)
+
+        self.image_v3 = vtk.vtkImageData()
+        self.image_v3.SetDimensions(dti_volume_v3.shape[0], dti_volume_v3.shape[1], dti_volume_v3.shape[2]) #set dimensions as necessary
+        self.image_v3.SetOrigin(0,0,0) #set origin as necessary
+        self.image_v3.SetSpacing(spacing[0], spacing[1], spacing[2]) #set spacing as necessary
+        self.image_v3.AllocateScalars(vtk.VTK_FLOAT, 3)
+
         normals_v1 = vtk.vtkFloatArray()
         normals_v1.SetName('eigenvectors')
         normals_v1.SetNumberOfComponents(3)
@@ -348,76 +401,128 @@ class VTKDTIVectorVisualizer:
         normals_v3 = vtk.vtkFloatArray()
         normals_v3.SetName('eigenvectors')
         normals_v3.SetNumberOfComponents(3)
+
+
+        print('Copying data')
+        for i in range(dti_volume_v1.shape[0]):
+            for j in range(dti_volume_v1.shape[1]):
+                for k in range(dti_volume_v1.shape[2]):
+                    # Mask volume
+                    self.image_mask.SetScalarComponentFromFloat(i,j,k,0, float(mask[i,j,k]))
+                    # First vector per voxel components
+                    self.image_v1.SetScalarComponentFromFloat(i,j,k,0, dti_volume_v1[i,j,k,0])
+                    self.image_v1.SetScalarComponentFromFloat(i,j,k,1, dti_volume_v1[i,j,k,1])
+                    self.image_v1.SetScalarComponentFromFloat(i,j,k,2, dti_volume_v1[i,j,k,2])
+
+                    # First vector
+                    normals_v1.InsertNextTuple(dti_volume_v1[i,j,k,(2,1,0)])
+
+                    # Second vector per voxel components
+                    self.image_v2.SetScalarComponentFromFloat(i,j,k,0, dti_volume_v2[i,j,k,0])
+                    self.image_v2.SetScalarComponentFromFloat(i,j,k,1, dti_volume_v2[i,j,k,1])
+                    self.image_v2.SetScalarComponentFromFloat(i,j,k,2, dti_volume_v2[i,j,k,2])
+
+                    # Second vector
+                    normals_v2.InsertNextTuple(dti_volume_v2[i,j,k,(2,1,0)])
+
+                    # Third vector per voxel components
+                    self.image_v3.SetScalarComponentFromFloat(i,j,k,0, dti_volume_v3[i,j,k,0])
+                    self.image_v3.SetScalarComponentFromFloat(i,j,k,1, dti_volume_v3[i,j,k,1])
+                    self.image_v3.SetScalarComponentFromFloat(i,j,k,2, dti_volume_v3[i,j,k,2])
+
+                    # Third vector
+                    normals_v3.InsertNextTuple(dti_volume_v3[i,j,k,(2,1,0)])
+
+
+        print('Done')  
+
+        # Add info to first vector volume
+        self.image_v1.GetPointData().SetVectors(normals_v1)
+        self.image_v1.GetPointData().SetActiveVectors('eigenvectors')
+
+        # Add info to first vector volume
+        self.image_v2.GetPointData().SetVectors(normals_v2)
+        self.image_v2.GetPointData().SetActiveVectors('eigenvectors')
+
+         # Add info to first vector volume
+        self.image_v3.GetPointData().SetVectors(normals_v3)
+        self.image_v3.GetPointData().SetActiveVectors('eigenvectors')
+
+        #points = vtk.vtkPoints()
+        masked_points = vtk.vtkPoints()
+
+        masked_normals_v1 = vtk.vtkFloatArray()
+        masked_normals_v1.SetName('eigenvectors')
+        masked_normals_v1.SetNumberOfComponents(3)
         
-        colors_v1 = vtk.vtkUnsignedCharArray();
-        colors_v1.SetName('colors')
-        colors_v1.SetNumberOfComponents(3)
+        masked_normals_v2 = vtk.vtkFloatArray()
+        masked_normals_v2.SetName('eigenvectors')
+        masked_normals_v2.SetNumberOfComponents(3)
         
-        colors_v2 = vtk.vtkUnsignedCharArray();
-        colors_v2.SetName('colors')
-        colors_v2.SetNumberOfComponents(3)
+        masked_normals_v3 = vtk.vtkFloatArray()
+        masked_normals_v3.SetName('eigenvectors')
+        masked_normals_v3.SetNumberOfComponents(3)
+
+        masked_colors_v1 = vtk.vtkUnsignedCharArray()
+        masked_colors_v1.SetName('colors')
+        masked_colors_v1.SetNumberOfComponents(3)
         
-        colors_v3 = vtk.vtkUnsignedCharArray();
-        colors_v3.SetName('colors')
-        colors_v3.SetNumberOfComponents(3)
+        masked_colors_v2 = vtk.vtkUnsignedCharArray()
+        masked_colors_v2.SetName('colors')
+        masked_colors_v2.SetNumberOfComponents(3)
+        
+        masked_colors_v3 = vtk.vtkUnsignedCharArray()
+        masked_colors_v3.SetName('colors')
+        masked_colors_v3.SetNumberOfComponents(3)
+
         
         point_id = -1
         print('Copying data')
-        for i in range(mask.shape[0]):
-            for j in range(mask.shape[1]):
-                for k in range(mask.shape[2]):
+        for i in range(dti_volume_v1.shape[0]):
+            for j in range(dti_volume_v1.shape[1]):
+                for k in range(dti_volume_v1.shape[2]):
                     if(mask[i,j,k]):
-                        # Insert point
-                        point_id = points.InsertNextPoint(i*spacing[0],j*spacing[1],k*spacing[2])
+                        # Insert Point
+                        masked_points.InsertNextPoint(i*spacing[0],j*spacing[1],k*spacing[2])
 
-                        # Insert vertex cell to represent the point
-                        #vertices.InsertNextCell(point_id)
-        
                         # First vector
-                        normals_v1.InsertNextTuple(dti_volume_v1[i,j,k,:])
+                        masked_normals_v1.InsertNextTuple(dti_volume_v1[i,j,k,:])
             
                         # First vector's color
-                        colors_v1.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v1[i,j,k,:])))
+                        masked_colors_v1.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v1[i,j,k,:])))
         
                         # Second vector
-                        normals_v2.InsertNextTuple(dti_volume_v2[i,j,k,:])
+                        masked_normals_v2.InsertNextTuple(dti_volume_v2[i,j,k,:])
         
                         # Second vector's color
-                        colors_v2.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v2[i,j,k,:])))
+                        masked_colors_v2.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v2[i,j,k,:])))
                         
                         # Third vector
-                        normals_v3.InsertNextTuple(dti_volume_v3[i,j,k,:])
+                        masked_normals_v3.InsertNextTuple(dti_volume_v3[i,j,k,:])
         
                         # Third vector's color
-                        colors_v3.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v3[i,j,k,:])))
+                        masked_colors_v3.InsertNextTuple(numpy.multiply(255,numpy.absolute(dti_volume_v3[i,j,k,:])))
         
         print('Done')
 
         # Fill first vector's polydata
-        self.polydata_v1.DebugOn()
-        self.polydata_v1.SetPoints(points);
-        self.polydata_v1.GetPointData().SetVectors(normals_v1);
-        self.polydata_v1.GetPointData().SetScalars(colors_v1);
+        #self.polydata_v1.DebugOn()
+        self.polydata_v1.SetPoints(masked_points)
+        self.polydata_v1.GetPointData().SetVectors(masked_normals_v1)
+        self.polydata_v1.GetPointData().SetScalars(masked_colors_v1)
         self.polydata_v1.GetPointData().SetActiveVectors('eigenvectors')
-        self.polydata_v1.BuildLinks()
-        self.polydata_v1.BuildCells()
 
         # Fill circular component polydata
-        self.polydata_v2.SetPoints(points);
-        self.polydata_v2.GetPointData().SetVectors(normals_v2);
-        self.polydata_v2.GetPointData().SetScalars(colors_v2);
+        self.polydata_v2.SetPoints(masked_points)
+        self.polydata_v2.GetPointData().SetVectors(masked_normals_v2)
+        self.polydata_v2.GetPointData().SetScalars(masked_colors_v2)
         self.polydata_v2.GetPointData().SetActiveVectors('eigenvectors')
-        self.polydata_v2.BuildLinks()
-        self.polydata_v2.BuildCells()
 
         # Fill longitudinal component polydata
-        self.polydata_v3.SetPoints(points);
-        self.polydata_v3.GetPointData().SetVectors(normals_v3);
-        self.polydata_v3.GetPointData().SetScalars(colors_v3);
+        self.polydata_v3.SetPoints(masked_points)
+        self.polydata_v3.GetPointData().SetVectors(masked_normals_v3)
+        self.polydata_v3.GetPointData().SetScalars(masked_colors_v3)
         self.polydata_v3.GetPointData().SetActiveVectors('eigenvectors')
-        self.polydata_v3.BuildLinks()
-        self.polydata_v3.BuildCells()
-
 
         self.CreateVisualization()
 
@@ -447,21 +552,26 @@ class VTKDTIVectorVisualizer:
         self.polydata_v2.GetPointData().AddArray(e2Scalars)
         self.polydata_v3.GetPointData().AddArray(e3Scalars)
 
-        print(e1Scalars)
-        print(self.polydata_v1)
+        self.image_v1.GetPointData().AddArray(e1Scalars)
+        self.image_v2.GetPointData().AddArray(e2Scalars)
+        self.image_v3.GetPointData().AddArray(e3Scalars)
 
     def SetMRIImage(self, matImage, spacing=[1,1,1]):
         ###################################################
         ### Volume plane cuts
         ###################################################
     
-        VTK_DATA = numpy_support.numpy_to_vtk(num_array=matImage.ravel(), deep=True, array_type=vtk.VTK_FLOAT)
         image_volume = vtk.vtkImageData()
-        image_volume.SetDimensions(matImage.shape[2], matImage.shape[1], matImage.shape[0]) #set dimensions as necessary
+        image_volume.SetDimensions(matImage.shape[0], matImage.shape[1], matImage.shape[2]) #set dimensions as necessary
         image_volume.SetOrigin(0,0,0) #set origin as necessary
         image_volume.SetSpacing(spacing) #set spacing as necessary  
-        image_volume.GetPointData().SetScalars(VTK_DATA)
+        image_volume.AllocateScalars(vtk.VTK_FLOAT, 1)
     
+        for i in range(matImage.shape[0]):
+            for j in range(matImage.shape[1]):
+                for k in range(matImage.shape[2]):
+                    image_volume.SetScalarComponentFromFloat(i,j,k,0, float(matImage[i,j,k]))
+
         # Cell picker
         cellpicker = vtk.vtkCellPicker()
         cellpicker.SetTolerance(0.005)
@@ -507,15 +617,15 @@ class VTKDTIVectorVisualizer:
         self.longAxis.SetLookupTable(lut)
         
         # Add planes to the scene (no visible by default)
-        self.shortAxis.SetInteractor(self.iren);
-        self.longAxis.SetInteractor(self.iren);
+        self.shortAxis.SetInteractor(self.iren)
+        self.longAxis.SetInteractor(self.iren)
         
     def CreateVisualization(self):
         # Resample 
         # We don't really need one vector per voxel
         self.ptMask = vtk.vtkMaskPoints()
         self.ptMask.SetInputData(self.polydata_v1)
-        self.ptMask.GenerateVerticesOn()   
+        #self.ptMask.GenerateVerticesOn()   
         self.ptMask.SetOnRatio(20)
         self.ptMask.RandomModeOff()
         self.ptMask.Update()
@@ -524,27 +634,26 @@ class VTKDTIVectorVisualizer:
         # We will represent vectors in 3D using arrows
         arrowSource = vtk.vtkArrowSource()
         
-        glyph = vtk.vtkGlyph3D();
+        glyph = vtk.vtkGlyph3D()
         glyph.SetInputConnection(self.ptMask.GetOutputPort())
         glyph.SetSourceConnection(arrowSource.GetOutputPort())
         glyph.ScalingOn()
-        glyph.SetScaleFactor(3.0)    # Scale respect color value
+        glyph.SetScaleFactor(3.0)    # Scale 
         glyph.OrientOn()
-        glyph.SetVectorModeToUseVector()        # Orient the arrow using 'normals' 
+        glyph.SetVectorModeToUseVector()        # Orient the arrow using 'eigenevectors' 
         glyph.SetScaleModeToDataScalingOff()    # Normals (and colors) might not be normalized. Don't use them to scale.
         glyph.SetColorModeToColorByScalar()     # Color using the values in 'color'
-        glyph.Update();
 
         # Mapper for glyphs
         self.mapper = vtk.vtkPolyDataMapper()
         self.mapper.SetInputConnection(glyph.GetOutputPort())
         
         # Actor to represent glyphs
-        actorVolume = vtk.vtkActor()
-        actorVolume.SetMapper(self.mapper)
+        self.actorVolume = vtk.vtkActor()
+        self.actorVolume.SetMapper(self.mapper)
         
         # Add actor to renderer        
-        self.renderer.AddActor(actorVolume)
+        self.renderer.AddActor(self.actorVolume)
 
         # Box widget
         self.boxWidget = vtk.vtkBoxWidget()
@@ -579,12 +688,12 @@ class VTKDTIVectorVisualizer:
         self.axes.SetShaftTypeToCylinder()
         #self.axes.SetTotalLength(100,100,100)
         
-        self.orientWidget = vtk.vtkOrientationMarkerWidget();
-        self.orientWidget.SetOrientationMarker(self.axes);
-        self.orientWidget.SetViewport(0.0,0.0,.2,.2);
-        self.orientWidget.SetInteractor(self.iren);
-        self.orientWidget.SetEnabled(1);
-        self.orientWidget.InteractiveOff();
+        self.orientWidget = vtk.vtkOrientationMarkerWidget()
+        self.orientWidget.SetOrientationMarker(self.axes)
+        self.orientWidget.SetViewport(0.0,0.0,.2,.2)
+        self.orientWidget.SetInteractor(self.iren)
+        self.orientWidget.SetEnabled(1)
+        self.orientWidget.InteractiveOff()
 
     def CreateIntegrationVisualization(self, initialStep, maxStep, minStep, maxError, propagationSteps):
         # Runge-Kutta integrator
@@ -592,20 +701,21 @@ class VTKDTIVectorVisualizer:
         
         # Create source for streamtubes
         streamer = vtk.vtkStreamTracer()
-        streamer.SetInputData(self.polydata_v1)
-        streamer.SetSourceData(self.ptMask.GetOutput())
-        streamer.SetInitialIntegrationStep(initialStep);
-        #streamer.SetMaximumIntegrationStep(maxStep);
-        #streamer.SetMinimumIntegrationStep(minStep);
-        #streamer.SetMaximumError(maxError);
-        #streamer.SetMaximumPropagation(propagationSteps);
-        streamer.SetIntegrationDirectionToForward();
+        streamer.DebugOn()
+        streamer.SetInputData(self.image_v1)
+        streamer.SetSourceConnection(self.ptMask.GetOutputPort())
+        streamer.SetInitialIntegrationStep(initialStep)
+        streamer.SetMaximumIntegrationStep(maxStep)
+        streamer.SetMinimumIntegrationStep(minStep)
+        streamer.SetMaximumError(maxError)
+        streamer.SetMaximumPropagation(propagationSteps)
+        streamer.SetIntegrationDirectionToForward()
         streamer.SetInterpolatorTypeToDataSetPointLocator()   
-        streamer.SetIntegrator(rk);
+        streamer.SetIntegrator(rk)
         #streamer.SurfaceStreamlinesOff()
         streamer.Update()
         ReasonForTermination = streamer.GetOutput().GetCellData().GetArray("ReasonForTermination") 
-        print(streamer)
+        print(ReasonForTermination)
 
         aa = vtk.vtkAssignAttribute()
         aa.SetInputConnection(streamer.GetOutputPort())
@@ -613,18 +723,19 @@ class VTKDTIVectorVisualizer:
 
         tubes = vtk.vtkTubeFilter()
         tubes.SetInputConnection(aa.GetOutputPort())
-        tubes.SetRadius(.2);
-        tubes.SetNumberOfSides(12);
-
+        tubes.SetRadius(.2)
+        tubes.SetNumberOfSides(12)
+        tubes.Update()
+        
         streamMapper = vtk.vtkPolyDataMapper()
         streamMapper.SetInputConnection(tubes.GetOutputPort())
         streamMapper.SetScalarRange(-1,1)
 
-        streamActor = vtk.vtkActor()
-        streamActor.SetMapper(streamMapper)
-        #streamActor.GetProperty().SetPointSize(20);
+        self.streamActor = vtk.vtkActor()
+        self.streamActor.SetMapper(streamMapper)
+        #streamActor.GetProperty().SetPointSize(20)
 
-        self.renderer.AddActor(streamActor)
+        self.renderer.AddActor(self.streamActor)
         
     def Start(self):
         self.renderer.SetBackground(0.0,0.0,0.0)
@@ -640,13 +751,9 @@ class VTKDTIVectorVisualizer:
         self.iren.Start() 
 
 class VTKDTIVolumeVisualizer:
+    
     def __init__(self):
-        """ Class constructor. 
-        Inputs:
-            * mri_volume: RxCxDx1 volume with 1 component per voxel corresponding to MRI acquisition 
-            * dti_volume: RxCxDx3 volume with 3 components per voxel corresponding to vector information
-            * mask: RxCxDx1 volume with boolean values to mask the input volumes
-        """
+        
     
     
         # Create renderer, render window, interactor and assign TrackBallCamera as
@@ -658,11 +765,6 @@ class VTKDTIVolumeVisualizer:
         self.iren.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
         self.iren.SetRenderWindow(self.renderWindow)
         self.iren.AddObserver("KeyPressEvent", self.Keypress)
-           
-        # Add axes to the scene
-        self.axes = vtk.vtkAxesActor()
-        self.axes.SetTotalLength(100,100,100)
-        self.renderer.AddActor(self.axes)
 
         # Create polydata to hold vector info
         self.image_v1 = vtk.vtkImageData()
@@ -673,7 +775,7 @@ class VTKDTIVolumeVisualizer:
 
     def Keypress(self, obj, event):
         key = obj.GetKeySym()
-        print(key)
+
         if key == "q":
             obj.InvokeEvent("DeleteAllObjects")
             sys.exit()
@@ -688,7 +790,8 @@ class VTKDTIVolumeVisualizer:
 
         elif key == "i":
             self.boxWidget.SetEnabled(not(self.boxWidget.GetEnabled()))
-
+        elif key == "v":
+            self.actorVolume.SetVisibility(not(self.newvol.GetVisibility()))
         self.iren.Render()
 
     # When interaction starts, the requested frame rate is increased.
@@ -708,42 +811,54 @@ class VTKDTIVolumeVisualizer:
         obj.GetPlanes(self.planes)
         self.mapper.SetClippingPlanes(self.planes)
 
-    def SetDTIImages(self, dti_image_v1, dti_image_v2, dti_image_v3, mask):
+    def SetDTIImages(self, dti_image_v1, dti_image_v2, dti_image_v3, mask, spacing = [1,1,1]):
+        """ SetDTIImages. 
+        Inputs:
+            * mri_volume: RxCxDx1 volume with 1 component per voxel corresponding to MRI acquisition 
+            * dti_volume_v1, dti_volume_v2, dti_volume_v3,: RxCxDx3 volumes with 3 components per voxel corresponding to vector information, for first, second and third tensor component
+            * mask: RxCxDx1 volume with boolean values to mask the input volumes
+        """
+        VTK_DATA = numpy_support.numpy_to_vtk(num_array=mask.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
+        self.image_mask = vtk.vtkImageData()
+        self.image_mask.SetDimensions(mask.shape[0], mask.shape[1], mask.shape[2]) #set dimensions as necessary
+        self.image_mask.SetOrigin(0,0,0) #set origin as necessary
+        self.image_mask.SetSpacing(spacing) #set spacing as necessary  
+        self.image_mask.GetPointData().SetScalars(VTK_DATA)        
         
         self.image_v1.SetDimensions(mask.shape[0], mask.shape[1], mask.shape[2]) #set dimensions as necessary
         self.image_v1.SetOrigin(0,0,0) #set origin as necessary
-        self.image_v1.SetSpacing(1, 1, 1) #set spacing as necessary
-        self.image_v1.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 4);
+        self.image_v1.SetSpacing(spacing) #set spacing as necessary
+        self.image_v1.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 4)
 
         self.image_v2 = vtk.vtkImageData()
         self.image_v2.SetDimensions(mask.shape[0], mask.shape[1], mask.shape[2]) #set dimensions as necessary
         self.image_v2.SetOrigin(0,0,0) #set origin as necessary
-        self.image_v2.SetSpacing(1, 1, 1) #set spacing as necessary
-        self.image_v2.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 4);
+        self.image_v2.SetSpacing(spacing) #set spacing as necessary
+        self.image_v2.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 4)
 
         self.image_v3 = vtk.vtkImageData()
         self.image_v3.SetDimensions(mask.shape[0], mask.shape[1], mask.shape[2]) #set dimensions as necessary
         self.image_v3.SetOrigin(0,0,0) #set origin as necessary
-        self.image_v3.SetSpacing(1, 1, 1) #set spacing as necessary
-        self.image_v3.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 4);
+        self.image_v3.SetSpacing(spacing) #set spacing as necessary
+        self.image_v3.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 4)
 
         print('Copying data')
         for i in range(mask.shape[0]):
             for j in range(mask.shape[1]):
                 for k in range(mask.shape[2]):
-                    self.image_v1.SetScalarComponentFromFloat(i,j,k,0, dti_image_v1[i,j,k,0])
+                    self.image_v1.SetScalarComponentFromFloat(i,j,k,0, dti_image_v1[i,j,k,2])
                     self.image_v1.SetScalarComponentFromFloat(i,j,k,1, dti_image_v1[i,j,k,1])
-                    self.image_v1.SetScalarComponentFromFloat(i,j,k,2, dti_image_v1[i,j,k,2])
+                    self.image_v1.SetScalarComponentFromFloat(i,j,k,2, dti_image_v1[i,j,k,0])
                     self.image_v1.SetScalarComponentFromFloat(i,j,k,3, mask[i,j,k])
 
-                    self.image_v2.SetScalarComponentFromFloat(i,j,k,0, dti_image_v2[i,j,k,0])
+                    self.image_v2.SetScalarComponentFromFloat(i,j,k,0, dti_image_v2[i,j,k,2])
                     self.image_v2.SetScalarComponentFromFloat(i,j,k,1, dti_image_v2[i,j,k,1])
-                    self.image_v2.SetScalarComponentFromFloat(i,j,k,2, dti_image_v2[i,j,k,2])
+                    self.image_v2.SetScalarComponentFromFloat(i,j,k,2, dti_image_v2[i,j,k,0])
                     self.image_v2.SetScalarComponentFromFloat(i,j,k,3, mask[i,j,k])
 
-                    self.image_v3.SetScalarComponentFromFloat(i,j,k,0, dti_image_v3[i,j,k,0])
+                    self.image_v3.SetScalarComponentFromFloat(i,j,k,0, dti_image_v3[i,j,k,2])
                     self.image_v3.SetScalarComponentFromFloat(i,j,k,1, dti_image_v3[i,j,k,1])
-                    self.image_v3.SetScalarComponentFromFloat(i,j,k,2, dti_image_v3[i,j,k,2])
+                    self.image_v3.SetScalarComponentFromFloat(i,j,k,2, dti_image_v3[i,j,k,0])
                     self.image_v3.SetScalarComponentFromFloat(i,j,k,3, mask[i,j,k])
         print('Done')   
         
@@ -807,8 +922,8 @@ class VTKDTIVolumeVisualizer:
         self.longAxis.SetLookupTable(lut)
         
         # Add planes to the scene (no visible by default)
-        self.shortAxis.SetInteractor(self.iren);
-        self.longAxis.SetInteractor(self.iren);
+        self.shortAxis.SetInteractor(self.iren)
+        self.longAxis.SetInteractor(self.iren)
         
     def CreateVisualization(self):
         
@@ -825,16 +940,16 @@ class VTKDTIVolumeVisualizer:
 
         # Color transfer functions
         color1 = vtk.vtkColorTransferFunction()
-        color1.AddRGBPoint(0.0, 0.0, 0.0, 0.0);
-        color1.AddRGBPoint(255.0, 1.0, 0.0, 0.0);
+        color1.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
+        color1.AddRGBPoint(255.0, 1.0, 0.0, 0.0)
 
         color2 = vtk.vtkColorTransferFunction()
-        color2.AddRGBPoint(0.0, 0.0, 0.0, 0.0);
-        color2.AddRGBPoint(255.0, 0.0, 1.0, 0.0);
+        color2.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
+        color2.AddRGBPoint(255.0, 0.0, 1.0, 0.0)
 
         color3 = vtk.vtkColorTransferFunction()
-        color3.AddRGBPoint(0.0, 0.0, 0.0, 0.0);
-        color3.AddRGBPoint(255.0, 0.0, 0.0, 1.0);
+        color3.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
+        color3.AddRGBPoint(255.0, 0.0, 0.0, 1.0)
 
         # Volume rendering property
         propVolume = vtk.vtkVolumeProperty()
@@ -855,12 +970,12 @@ class VTKDTIVolumeVisualizer:
         self.mapper.SetInputData(self.image_v1)
         #############################################
 
-        newvol = vtk.vtkVolume()
-        newvol.SetMapper(self.mapper)
-        newvol.SetProperty(propVolume)
+        self.actorVolume = vtk.vtkVolume()
+        self.actorVolume.SetMapper(self.mapper)
+        self.actorVolume.SetProperty(propVolume)
         
         # Add actor to renderer        
-        self.renderer.AddActor(newvol)
+        self.renderer.AddActor(self.actorVolume)
         
         # Box widget
         self.boxWidget = vtk.vtkBoxWidget()
@@ -890,30 +1005,59 @@ class VTKDTIVolumeVisualizer:
         selectedOutlineProperty.SetAmbientColor(1,0, 0)
         selectedOutlineProperty.SetLineWidth(3)
         
-    def CreateIntegrationVisualization(self):
+        # Add axes to the scene
+        self.axes = vtk.vtkAxesActor()
+        self.axes.SetShaftTypeToCylinder()
+        
+        self.orientWidget = vtk.vtkOrientationMarkerWidget()
+        self.orientWidget.SetOrientationMarker(self.axes)
+        self.orientWidget.SetViewport(0.0,0.0,.2,.2)
+        self.orientWidget.SetInteractor(self.iren)
+        self.orientWidget.SetEnabled(1)
+        self.orientWidget.InteractiveOff()
+
+    def CreateIntegrationVisualization(self, initialStep, maxStep, minStep, maxError, propagationSteps):
+        ptMask = vtk.vtkMaskPoints()
+        ptMask.SetInputData(self.image_v1)
+        ptMask.SetOnRatio(50)
+        ptMask.RandomModeOn()
+        ptMask.Update()
+        print(ptMask.GetOutput())        
+        
+        
         rk = vtk.vtkRungeKutta45()
+
         # Create source for streamtubes
         streamer = vtk.vtkStreamTracer()
-        streamer.SetInputData(self.polydata_v1)
-        streamer.SetSourceConnection(self.ptMask.GetOutputPort())
-        streamer.SetMaximumPropagation(500)
-        streamer.SetIntegrationStepUnit(2)
-        streamer.SetMinimumIntegrationStep(0.972)
-        streamer.SetMaximumIntegrationStep(20)
-        streamer.SetInitialIntegrationStep(10)
-        streamer.SetIntegrationDirection(0)
+        streamer.DebugOn()
+        streamer.SetInputData(self.image_v1)
+        streamer.SetSourceConnection(ptMask.GetOutputPort())
+        #streamer.SetSourceData(image_volume)
+        #streamer.SetStartPosition(mask.shape[0]/2, mask.shape[1]/3, 4)
+        streamer.SetInitialIntegrationStep(initialStep)
+        streamer.SetMaximumIntegrationStep(maxStep)
+        streamer.SetMinimumIntegrationStep(minStep)
+        streamer.SetMaximumError(maxError)
+        streamer.SetMaximumPropagation(propagationSteps)
+        streamer.SetIntegrationDirectionToForward()
+        streamer.SetInterpolatorTypeToDataSetPointLocator()   
         streamer.SetIntegrator(rk)
-        streamer.SetRotationScale(1.0)
-        streamer.SetMaximumError(1.0)
+        #streamer.SurfaceStreamlinesOff()
+        streamer.Update()
+        ReasonForTermination = streamer.GetOutput().GetCellData().GetArray("ReasonForTermination") 
+        print(ReasonForTermination)
+        
         aa = vtk.vtkAssignAttribute()
         aa.SetInputConnection(streamer.GetOutputPort())
         aa.Assign("Normals","NORMALS","POINT_DATA")
-        rf1 = vtk.vtkRibbonFilter()
-        rf1.SetInputConnection(aa.GetOutputPort())
-        rf1.SetWidth(0.1)
-        rf1.VaryWidthOff()
+        
+        tubes = vtk.vtkTubeFilter()
+        tubes.SetInputConnection(aa.GetOutputPort())
+        tubes.SetRadius(.2)
+        tubes.SetNumberOfSides(12)
+        tubes.Update()
         mapStream = vtk.vtkPolyDataMapper()
-        mapStream.SetInputConnection(rf1.GetOutputPort())
+        mapStream.SetInputConnection(tubes.GetOutputPort())
         #mapStream.SetScalarRange(-1,1)
         streamActor = vtk.vtkActor()
         streamActor.SetMapper(mapStream)
